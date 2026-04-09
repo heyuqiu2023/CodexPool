@@ -2,14 +2,37 @@ import { Account, LogEntry, PoolSettings, Task } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+// Auth token management
+export function setAuthToken(token: string) {
+  localStorage.setItem('codexpool_token', token);
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem('codexpool_token');
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem('codexpool_token');
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
-    ...init,
-  });
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string> || {}),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+
+  if (response.status === 401) {
+    // Clear invalid token, dispatch event
+    clearAuthToken();
+    window.dispatchEvent(new CustomEvent('auth:required'));
+    throw new Error('认证失败，请重新登录');
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ message: response.statusText }));
@@ -124,4 +147,13 @@ export const api = {
     secondary?: { used_percent: number; window_minutes: number; resets_at: string | null } | null;
     token_usage?: { input_tokens: number; output_tokens: number; total_tokens: number } | null;
   }>('/api/codex-usage'),
+  login: (password: string) => request<{ ok: boolean; token: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
+  checkAuth: () => request<{ ok: boolean; authRequired: boolean }>('/api/auth/check'),
+  getUsageHistory: (accountId?: string, hours?: number) => {
+    const search = new URLSearchParams();
+    if (accountId) search.set('account_id', accountId);
+    if (hours) search.set('hours', String(hours));
+    const suffix = search.toString() ? `?${search.toString()}` : '';
+    return request<Array<{ recorded_at: string; primary_used: number; secondary_used: number; account_id: string }>>(`/api/usage-history${suffix}`);
+  },
 };

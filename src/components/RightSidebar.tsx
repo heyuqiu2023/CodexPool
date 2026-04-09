@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { PoolSettings } from '@/types';
-import { RotateCw, Zap, KeyRound, RefreshCcw } from 'lucide-react';
+import { RotateCw, Zap, KeyRound, RefreshCcw, Pause, ShieldCheck, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface RightSidebarProps {
@@ -16,9 +16,11 @@ interface RightSidebarProps {
   onRestartOpenClaw?: () => void;
   onRefreshAllTokens?: () => void;
   onCheckAllUsage?: () => void;
+  onClearAll?: () => void;
+  accountCount?: number;
 }
 
-export function RightSidebar({ settings, onSettingsChange, onRotateNow, onPauseAll, onHealthCheck, onRestartOpenClaw, onRefreshAllTokens, onCheckAllUsage }: RightSidebarProps) {
+export function RightSidebar({ settings, onSettingsChange, onRotateNow, onPauseAll, onHealthCheck, onRestartOpenClaw, onRefreshAllTokens, onCheckAllUsage, onClearAll, accountCount = 0 }: RightSidebarProps) {
   const { t } = useI18n();
 
   const update = (partial: Partial<PoolSettings>) => {
@@ -39,7 +41,24 @@ export function RightSidebar({ settings, onSettingsChange, onRotateNow, onPauseA
         {onCheckAllUsage && (
           <Button onClick={onCheckAllUsage} variant="outline" className="w-full h-8 text-xs border-primary/30 text-primary hover:bg-primary/10">
             <Zap className="h-3.5 w-3.5 mr-1.5" />
-            检测所有账号用量
+            {t('right.checkAllUsage')}
+          </Button>
+        )}
+
+        <Button onClick={onHealthCheck} variant="outline" className="w-full h-8 text-xs">
+          <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
+          {t('right.healthCheck')}
+        </Button>
+
+        <Button onClick={onPauseAll} variant="outline" className="w-full h-8 text-xs">
+          <Pause className="h-3.5 w-3.5 mr-1.5" />
+          {t('right.pauseAll')}
+        </Button>
+
+        {onClearAll && accountCount > 0 && (
+          <Button onClick={onClearAll} variant="outline" className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10">
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            {t('filter.clearAll')}
           </Button>
         )}
       </div>

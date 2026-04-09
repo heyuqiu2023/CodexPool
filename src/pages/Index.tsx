@@ -16,6 +16,7 @@ const Index = () => {
   const [settings, setSettings] = useState<PoolSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [tokenRefreshKey, setTokenRefreshKey] = useState(0);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const { t } = useI18n();
 
   // Settings debounce：300ms 内多次变更只保存最后一次
@@ -38,10 +39,11 @@ const Index = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── 自动轮询：每 30 秒静默刷新账号状态 + 日志 ──
+  // ── 自动轮询：每 30 秒静默刷新账号状态 + 日志 + 图表 ──
   useEffect(() => {
     const pollInterval = setInterval(() => {
       loadDashboard().catch(() => {/* 静默失败，不打扰用户 */});
+      setChartRefreshKey(k => k + 1);
     }, 30_000);
     return () => clearInterval(pollInterval);
   }, []);
@@ -154,6 +156,7 @@ const Index = () => {
         }
       });
       setBatchUsageMap({ ...next }); // new object reference triggers AccountGrid effect
+      setChartRefreshKey(k => k + 1); // 刷新趋势图
       const ok = Object.values(next).filter(u => u.ok).length;
       toast.success(`${ok}/${accounts.length} 个账号检测成功`);
     } catch (error) {
@@ -204,7 +207,7 @@ const Index = () => {
         onModeChange={(mode) => handleSettingsChange({ ...settings, mode })}
       />
       <div className="flex-1 flex min-h-0">
-        <LeftSidebar currentAccount={currentAccount} accounts={accounts} recentLogs={logs} />
+        <LeftSidebar currentAccount={currentAccount} accounts={accounts} recentLogs={logs} chartRefreshKey={chartRefreshKey} />
         <AccountGrid
           accounts={accounts}
           onAction={handleAccountAction}
@@ -223,6 +226,8 @@ const Index = () => {
           onRestartOpenClaw={handleRestartOpenClaw}
           onRefreshAllTokens={handleRefreshAllTokens}
           onCheckAllUsage={handleCheckAllUsage}
+          onClearAll={handleClearAll}
+          accountCount={accounts.length}
         />
       </div>
     </div>

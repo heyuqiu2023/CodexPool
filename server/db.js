@@ -1,28 +1,18 @@
-import mysql from 'mysql2/promise';
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config.js';
 
-const connectionOptions = config.db.socketPath
-  ? {
-      user: config.db.user,
-      password: config.db.password,
-      database: config.db.database,
-      socketPath: config.db.socketPath,
-    }
-  : {
-      host: config.db.host,
-      port: config.db.port,
-      user: config.db.user,
-      password: config.db.password,
-      database: config.db.database,
-    };
+// Ensure data directory exists
+const dbDir = path.dirname(config.dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
-export const pool = mysql.createPool({
-  ...connectionOptions,
-  waitForConnections: true,
-  connectionLimit: 10,
-  connectTimeout: 10000,        // 连接超时 10 秒
-  acquireTimeout: 10000,        // 获取连接超时 10 秒
-  idleTimeout: 60000,           // 空闲连接 60 秒后释放
-  enableKeepAlive: true,        // 保持连接活跃
-  keepAliveInitialDelay: 30000, // 30 秒发送第一个 keepalive 包
-});
+const db = new Database(config.dbPath);
+
+// Enable WAL mode for better concurrent performance
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+export default db;

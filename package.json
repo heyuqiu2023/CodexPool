@@ -1,7 +1,7 @@
 {
   "name": "codex-pool-manager",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "server": "node server/index.js",
-    "db:init": "node server/init-db.js"
+    "db:init": "node server/init-db.js",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:restart": "docker compose restart"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -68,7 +72,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
-    "mysql2": "^3.14.3"
+    "better-sqlite3": "^11.7.0",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

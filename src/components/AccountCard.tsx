@@ -316,6 +316,10 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="text-xs">
+              <DropdownMenuItem onClick={handleRefreshLiveUsage} disabled={fetchingLive}>
+                <Zap className="h-3 w-3 mr-1.5" />
+                {fetchingLive ? t('card.checking') : t('card.checkAvailability')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSetActive(account.id)}>Set Active</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onPause(account.id)}>Pause</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onReset(account.id)}>Reset</DropdownMenuItem>
@@ -473,39 +477,26 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
         );
       })()}
 
-      {/* 检测按钮（合并：检测可用性 + 刷新用量） */}
-      <div className="mb-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full h-7 text-[11px] gap-1.5"
-          onClick={handleRefreshLiveUsage}
-          disabled={fetchingLive}
-        >
-          <Zap className={`h-3 w-3 ${fetchingLive ? 'animate-pulse' : ''}`} />
-          {fetchingLive ? t('card.checking') : t('card.checkAvailability')}
-        </Button>
-
-        {usageResult && (
-          <div className={`mt-2 rounded-md px-3 py-2 text-[11px] ${
-            usageResult.ok ? 'bg-primary/5 border border-primary/20' :
-            usageResult.rate_limited ? 'bg-destructive/10 border border-destructive/20' :
-            'bg-destructive/10 border border-destructive/20'
-          }`}>
-            <div className="flex items-center gap-1.5 font-medium">
-              {usageResult.ok ? (
-                <><CheckCircle2 className="h-3 w-3 text-primary" /><span className="text-primary">{t('card.codexAvailable')}</span></>
-              ) : usageResult.rate_limited ? (
-                <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{t('card.codexRateLimited')}</span></>
-              ) : usageResult.status === 401 ? (
-                <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{t('card.tokenInvalid')}</span></>
-              ) : (
-                <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{usageResult.error ?? t('card.checkFailed')}</span></>
-              )}
-            </div>
+      {/* 检测结果（如有） */}
+      {usageResult && (
+        <div className={`mb-3 rounded-md px-3 py-2 text-[11px] ${
+          usageResult.ok ? 'bg-primary/5 border border-primary/20' :
+          usageResult.rate_limited ? 'bg-destructive/10 border border-destructive/20' :
+          'bg-destructive/10 border border-destructive/20'
+        }`}>
+          <div className="flex items-center gap-1.5 font-medium">
+            {usageResult.ok ? (
+              <><CheckCircle2 className="h-3 w-3 text-primary" /><span className="text-primary">{t('card.codexAvailable')}</span></>
+            ) : usageResult.rate_limited ? (
+              <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{t('card.codexRateLimited')}</span></>
+            ) : usageResult.status === 401 ? (
+              <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{t('card.tokenInvalid')}</span></>
+            ) : (
+              <><AlertCircle className="h-3 w-3 text-destructive" /><span className="text-destructive">{usageResult.error ?? t('card.checkFailed')}</span></>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 上次请求 */}
       <div className="flex gap-3 text-[10px] text-muted-foreground mb-3">

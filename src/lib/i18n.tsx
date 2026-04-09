@@ -8,7 +8,7 @@ const dateFnsLocales = { en: enUS, zh: zhCN } as const;
 const translations = {
   // ─── Header ───
   'app.title': { en: 'Codex Pool Manager', zh: 'Codex 账号池管理器' },
-  'app.version': { en: 'v2.1', zh: 'v2.1' },
+  'app.version': { en: 'v3.0', zh: 'v3.0' },
 
   // ─── 404 ───
   'notFound.title': { en: '404', zh: '404' },
@@ -25,6 +25,7 @@ const translations = {
   'sidebar.currentActive': { en: 'Currently Active', zh: '当前激活' },
   'sidebar.noActive': { en: 'No active account', zh: '暂无激活账号' },
   'sidebar.noActiveHint': { en: 'Click ··· → Set Active on a card', zh: '点账号卡片的 ··· → Set Active' },
+  'sidebar.usageTrend': { en: 'Usage Trend', zh: '用量趋势' },
   'sidebar.recentOps': { en: 'Recent Operations', zh: '最近操作' },
   'sidebar.noLogs': { en: 'No operations yet', zh: '暂无操作记录' },
 
@@ -33,6 +34,7 @@ const translations = {
   'right.rotateNext': { en: 'Rotate to Next Account', zh: '立即切换下一个账号' },
   'right.pauseAll': { en: 'Pause All Accounts', zh: '暂停所有账号' },
   'right.healthCheck': { en: 'Health Check All', zh: '全部健康检查' },
+  'right.checkAllUsage': { en: 'Check All Usage', zh: '检测所有用量' },
   'right.reloadOpenClaw': { en: 'Reload OpenClaw', zh: '重载 OpenClaw' },
   'right.refreshAllTokens': { en: 'Refresh All Tokens', zh: '批量刷新 Token' },
   'right.rotationSettings': { en: 'Rotation Settings', zh: '轮换设置' },
@@ -114,6 +116,8 @@ const translations = {
   // ─── Promo ───
   'promo.text': { en: 'Follow me on Douyin for updates!', zh: '感兴趣可以关注我抖音，我会持续更新！' },
   'promo.douyinId': { en: 'Douyin ID: 87557938150', zh: '抖音号：87557938150' },
+  'promo.contribute': { en: 'Improvements welcome! Submit a PR on GitHub — valid contributors will be featured on the Contributors Wall', zh: '欢迎提交改进到 GitHub！有效贡献者将登上贡献者墙并成为项目贡献者' },
+  'promo.contributeLink': { en: 'Contribute →', zh: '参与贡献 →' },
 
   // ─── Settings page ───
   'settings.title': { en: 'Settings', zh: '设置' },

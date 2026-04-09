@@ -1,4 +1,4 @@
-function toMysqlDate(date) {
+function formatTimestamp(date) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
@@ -6,8 +6,8 @@ const names = ['a26', 'a62', 'a03', 'JERRY', 'b14', 'c88', 'd42', 'e99', 'f17', 
 const statuses = ['active', 'idle', 'idle', 'error', 'active', 'idle', 'rate_limited', 'cooldown', 'idle', 'active'];
 const types = ['team', 'team', 'plus', 'free', 'team', 'team', 'plus', 'team', 'free', 'team'];
 
-const hoursAgo = (hours) => toMysqlDate(new Date(Date.now() - hours * 3600000));
-const minutesAgo = (minutes) => toMysqlDate(new Date(Date.now() - minutes * 60000));
+const hoursAgo = (hours) => formatTimestamp(new Date(Date.now() - hours * 3600000));
+const minutesAgo = (minutes) => formatTimestamp(new Date(Date.now() - minutes * 60000));
 
 export function createSeedAccounts() {
   return names.map((name, index) => ({

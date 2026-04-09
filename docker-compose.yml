@@ -1,0 +1,16 @@
+services:
+  codexpool:
+    build: .
+    container_name: codexpool
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3001}:3001"
+    volumes:
+      - ./data:/app/data
+      - ./accounts:/app/accounts
+    environment:
+      - PORT=3001
+      - FRONTEND_ORIGIN=*
+      - DB_PATH=/app/data/codexpool.db
+      - AUTH_SECRET=${AUTH_SECRET:-}
+      - NODE_ENV=production

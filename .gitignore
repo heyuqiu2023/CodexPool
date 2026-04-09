@@ -30,3 +30,16 @@ dist-ssr
 
 # Auth files (OAuth tokens, sensitive - do not commit)
 accounts/
+
+# SQLite database
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Runtime files
+.codexpool.pid
+codexpool.log
+
+# Lock file (use npm/package-lock.json only)
+bun.lock

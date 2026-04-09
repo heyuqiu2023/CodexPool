@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodexPool v3.0</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #111;
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+  }
+
+  .poster {
+    width: 1080px;
+    height: 1350px;
+    background: linear-gradient(170deg, #0a0f1a 0%, #0d1526 30%, #111d2e 60%, #0a1220 100%);
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+  }
+
+  .bg-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+  }
+  .bg-glow.g1 { width: 500px; height: 500px; background: #22c55e; top: -80px; right: -120px; }
+  .bg-glow.g2 { width: 400px; height: 400px; background: #3b82f6; bottom: 100px; left: -150px; opacity: 0.1; }
+
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    padding: 48px 52px 40px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 顶部标签 */
+  .top-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 100px;
+    padding: 8px 22px;
+    font-size: 22px;
+    font-weight: 500;
+    color: #4ade80;
+    width: fit-content;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .top-tag .dot {
+    width: 10px; height: 10px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* 主标题 */
+  .title-section { margin-bottom: 8px; }
+  .main-title {
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .version {
+    display: inline-block;
+    font-size: 50px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-top: 2px;
+  }
+  .subtitle {
+    font-size: 26px;
+    color: #64748b;
+    margin-top: 10px;
+    font-weight: 400;
+  }
+
+  /* 区块标题 */
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title.base {
+    color: #94a3b8;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+  .section-title.new {
+    color: #4ade80;
+    border-bottom: 1px solid rgba(34, 197, 94, 0.15);
+  }
+  .section-title.fix {
+    color: #f59e0b;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+  }
+
+  .divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #22c55e, transparent);
+    border-radius: 2px;
+    margin: 20px 0;
+  }
+
+  /* 功能列表 */
+  .section { margin-bottom: 18px; }
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .feature-icon.green { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.2); }
+  .feature-icon.blue { background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.2); }
+  .feature-icon.amber { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.2); }
+  .feature-icon.purple { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.2); }
+  .feature-icon.cyan { background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.2); }
+  .feature-icon.red { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.2); }
+  .feature-icon.pink { background: rgba(236, 72, 153, 0.12); border: 1px solid rgba(236, 72, 153, 0.2); }
+
+  .feature-text {
+    font-size: 28px;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1.3;
+  }
+
+  /* 底部 */
+  .bottom {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .bottom .label {
+    font-size: 18px;
+    color: #475569;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+  }
+  .bottom .github {
+    font-size: 26px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="bg-glow g1"></div>
+  <div class="bg-glow g2"></div>
+  <div class="grid-bg"></div>
+
+  <div class="content">
+    <div class="top-tag">
+      <span class="dot"></span>
+      重大更新
+    </div>
+
+    <div class="title-section">
+      <div class="main-title">CodexPool</div>
+      <div class="version">v3.0</div>
+      <div class="subtitle">Codex 多账号池管理器 · 全面重构</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 基础功能 -->
+    <div class="section">
+      <div class="section-title base">📦 基础功能</div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon blue">🔄</div>
+          <div class="feature-text">多账号池管理 + 智能轮换</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon amber">📡</div>
+          <div class="feature-text">WebSocket 实时状态推送</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon cyan">🌍</div>
+          <div class="feature-text">中英双语 + 亮暗主题</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon purple">🔐</div>
+          <div class="feature-text">密码保护 + Docker 支持</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新功能 -->
+    <div class="section">
+      <div class="section-title new">✨ v3.0 新功能</div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon green">⚡</div>
+          <div class="feature-text">一键部署，去掉 MySQL</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon red">📊</div>
+          <div class="feature-text">用量趋势可视化图表</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon pink">🔗</div>
+          <div class="feature-text">OpenClaw 账号联动同步</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bug 修复 -->
+    <div class="section">
+      <div class="section-title fix">🔧 v3.0 修复</div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon amber">🗃️</div>
+          <div class="feature-text">数据库兼容性全面修复</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon amber">🧩</div>
+          <div class="feature-text">Node v24 兼容 + 依赖升级</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon amber">🎨</div>
+          <div class="feature-text">UI 布局优化 + 冗余清理</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="label">免费开源</div>
+      <div class="github">GitHub 开源 · 项目名 CodexPool</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
