@@ -111,9 +111,20 @@ router.post('/auth/codex-login', asyncHandler(async (_req, res) => {
       if (newFile) {
         await fs.mkdir(PROJECT_ACCOUNTS_DIR, { recursive: true });
         const src = path.join(codexDir, newFile);
-        const dest = path.join(PROJECT_ACCOUNTS_DIR, newFile);
+
+        // Generate a unique destination name so repeated logins don't overwrite existing accounts
+        const baseName = newFile.replace(/\.json$/, '');
+        let destName = newFile;
+        let dest = path.join(PROJECT_ACCOUNTS_DIR, destName);
+        let counter = 2;
+        while (fsSync.existsSync(dest)) {
+          destName = `${baseName}_${counter}.json`;
+          dest = path.join(PROJECT_ACCOUNTS_DIR, destName);
+          counter++;
+        }
+
         await fs.copyFile(src, dest);
-        loginSession = { status: 'success', message: `Login successful! Saved ${newFile}`, output: loginSession.output, newFile, error: null };
+        loginSession = { status: 'success', message: `Login successful! Saved ${destName}`, output: loginSession.output, newFile: destName, error: null };
       } else {
         loginSession = { status: 'success', message: 'Login successful! Please manually copy ~/.codex/auth.json to accounts/', output: loginSession.output, newFile: null, error: null };
       }

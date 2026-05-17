@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreHorizontal, AlertCircle, CheckCircle2, Clock, Zap, Eye, EyeOff } from 'lucide-react';
+import { MoreHorizontal, AlertCircle, CheckCircle2, Clock, Zap, Eye, EyeOff, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Account, LiveUsageData } from '@/types';
 import { api } from '@/lib/api';
@@ -18,6 +21,7 @@ interface AccountCardProps {
   onPause: (id: string) => void;
   onReset: (id: string) => void;
   onRemove: (id: string) => void;
+  onUpdate?: () => void;
   refreshKey?: number;
   viewMode?: 'grid' | 'list';
   externalUsage?: LiveUsageData | null;
@@ -69,7 +73,7 @@ function barColor(pct: number) {
   return 'bg-primary';
 }
 
-export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, refreshKey, viewMode = 'grid', externalUsage, onUsageUpdate }: AccountCardProps) {
+export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, onUpdate, refreshKey, viewMode = 'grid', externalUsage, onUsageUpdate }: AccountCardProps) {
   const sb = statusBadge[account.status];
   const tb = typeBadge[account.auth_type];
   const { t, dateLocale } = useI18n();
@@ -81,6 +85,10 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
   const [liveUsage, setLiveUsage] = useState<LiveUsageData | null>(externalUsage ?? null);
   const [fetchingLive, setFetchingLive] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPath, setEditPath] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   /** 距过期时间的友好描述 + 颜色 */
   function tokenExpiryInfo(expiresAt: string | undefined) {
@@ -103,6 +111,27 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
       setAuthInfo(null);
     } finally {
       setLoadingInfo(false);
+    }
+  };
+
+  const openEdit = () => {
+    setEditName(account.account_id);
+    setEditPath(account.auth_file_path || '');
+    setEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editName.trim()) return;
+    setEditSaving(true);
+    try {
+      await api.updateAccountInfo(account.id, { account_id: editName.trim(), auth_file_path: editPath.trim() || undefined });
+      toast.success('账号信息已更新');
+      setEditOpen(false);
+      onUpdate?.();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -263,6 +292,10 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="text-xs">
+              <DropdownMenuItem onClick={openEdit}>
+                <Pencil className="h-3 w-3 mr-1.5" />Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onSetActive(account.id)}>Set Active</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onPause(account.id)}>Pause</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onReset(account.id)}>Reset</DropdownMenuItem>
@@ -316,6 +349,10 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="text-xs">
+              <DropdownMenuItem onClick={openEdit}>
+                <Pencil className="h-3 w-3 mr-1.5" />Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleRefreshLiveUsage} disabled={fetchingLive}>
                 <Zap className="h-3 w-3 mr-1.5" />
                 {fetchingLive ? t('card.checking') : t('card.checkAvailability')}
@@ -534,5 +571,43 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
         </div>
       )}
     </motion.div>
+
+    {/* Edit dialog — rendered outside the card motion div to avoid layout issues */}
+    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>编辑账号</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">账号名称</Label>
+            <Input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="text-sm"
+              placeholder="账号显示名称"
+              onKeyDown={e => e.key === 'Enter' && handleEditSave()}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Auth 文件路径</Label>
+            <Input
+              value={editPath}
+              onChange={e => setEditPath(e.target.value)}
+              className="text-sm font-mono"
+              placeholder="accounts/auth.json"
+              onKeyDown={e => e.key === 'Enter' && handleEditSave()}
+            />
+            <p className="text-[10px] text-muted-foreground">修改此处可修复手动改名后路径失效的问题</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editSaving}>取消</Button>
+          <Button onClick={handleEditSave} disabled={editSaving || !editName.trim()}>
+            {editSaving ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

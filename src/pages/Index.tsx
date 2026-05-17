@@ -214,6 +214,7 @@ const Index = () => {
           onRemove={handleAccountRemove}
           onAccountAdded={handleAccountAdded}
           onClearAll={handleClearAll}
+          onUpdate={loadDashboard}
           refreshKey={tokenRefreshKey}
           pushedUsageMap={batchUsageMap}
         />
