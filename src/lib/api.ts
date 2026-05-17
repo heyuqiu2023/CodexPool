@@ -50,6 +50,7 @@ export const api = {
   listAccounts: () => request<Account[]>('/api/accounts'),
   createAccount: (payload: Pick<Account, 'account_id' | 'email' | 'auth_type' | 'auth_file_path'> & { platform?: string }) => request<Account>('/api/accounts', { method: 'POST', body: JSON.stringify(payload) }),
   updateAccountAction: (id: string, action: 'setActive' | 'pause' | 'reset') => request<Account>(`/api/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ action }) }),
+  updateAccountInfo: (id: string, data: { account_id?: string; auth_file_path?: string }) => request<Account>(`/api/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ action: 'update', ...data }) }),
   deleteAccount: (id: string) => request<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
   clearAllAccounts: () => request<void>('/api/accounts', { method: 'DELETE' }),
   checkAccountUsage: (id: string) => request<{

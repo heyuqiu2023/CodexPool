@@ -14,11 +14,12 @@ interface AccountGridProps {
   onRemove: (id: string) => void;
   onAccountAdded: () => void;
   onClearAll: () => void;
+  onUpdate?: () => void;
   refreshKey?: number;
   pushedUsageMap?: Record<string, LiveUsageData>;  // injected from parent after batch check
 }
 
-export function AccountGrid({ accounts, onAction, onRemove, onAccountAdded, onClearAll, refreshKey, pushedUsageMap }: AccountGridProps) {
+export function AccountGrid({ accounts, onAction, onRemove, onAccountAdded, onClearAll, onUpdate, refreshKey, pushedUsageMap }: AccountGridProps) {
   const [platformFilter, setPlatformFilter] = useState<string | 'all'>('all');
   const [usageMap, setUsageMap] = useState<Record<string, LiveUsageData>>({});
   const [platforms, setPlatforms] = useState<string[]>(['gpt', 'gemini', 'claude']);
@@ -167,6 +168,7 @@ export function AccountGrid({ accounts, onAction, onRemove, onAccountAdded, onCl
               onPause={handlePause}
               onReset={handleReset}
               onRemove={handleRemove}
+              onUpdate={onUpdate}
               refreshKey={refreshKey}
               viewMode={viewMode}
               externalUsage={usageMap[account.id] ?? null}

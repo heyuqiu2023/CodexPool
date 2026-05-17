@@ -123,6 +123,22 @@ router.patch('/accounts/:id', asyncHandler(async (req, res) => {
       "UPDATE accounts SET status = 'idle', requests_this_minute = 0, tokens_used_percent = 0, updated_at = datetime('now') WHERE id = ?"
     ).run(id);
     await createLog({ accountId: id, message: 'Account reset' });
+  } else if (action === 'update') {
+    const setClauses = ["updated_at = datetime('now')"];
+    const params = [];
+    if (typeof req.body.account_id === 'string' && req.body.account_id.trim()) {
+      setClauses.push('account_id = ?');
+      params.push(req.body.account_id.trim());
+    }
+    if (typeof req.body.auth_file_path === 'string' && req.body.auth_file_path.trim()) {
+      setClauses.push('auth_file_path = ?');
+      params.push(req.body.auth_file_path.trim());
+    }
+    if (params.length > 0) {
+      params.push(id);
+      db.prepare(`UPDATE accounts SET ${setClauses.join(', ')} WHERE id = ?`).run(...params);
+      await createLog({ accountId: id, message: `Account info updated` });
+    }
   } else {
     return res.status(400).json({ message: 'Unsupported action' });
   }
