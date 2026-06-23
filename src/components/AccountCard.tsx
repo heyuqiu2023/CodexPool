@@ -317,6 +317,7 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
 
   // ── Full grid card ──
   return (
+    <>
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
@@ -609,5 +610,6 @@ export function AccountCard({ account, onSetActive, onPause, onReset, onRemove, 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

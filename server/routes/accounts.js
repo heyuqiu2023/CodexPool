@@ -1,5 +1,6 @@
 import express from 'express';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
@@ -14,6 +15,51 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PROJECT_ACCOUNTS_DIR = path.join(PROJECT_ROOT, '..', 'accounts');
 
 const router = express.Router();
+
+function getAuthEmail(parsed) {
+  const token = parsed.access_token || parsed.accessToken || parsed.tokens?.access_token || '';
+  const payload = decodeJwtPayload(token);
+  return payload?.email || payload?.['https://api.openai.com/profile']?.email || '';
+}
+
+async function detectAuthType(parsed) {
+  const accessToken = parsed.tokens?.access_token || parsed.access_token || parsed.accessToken || '';
+  if (!accessToken) return 'plus';
+
+  try {
+    const whamResp = await fetch('https://chatgpt.com/backend-api/wham/usage', {
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (whamResp.ok) {
+      const whamData = await whamResp.json();
+      const pt = whamData.plan_type || '';
+      return pt.includes('team') ? 'team' : pt.includes('free') ? 'free' : 'plus';
+    }
+  } catch { }
+
+  return 'plus';
+}
+
+function safeAuthFileName(input, fallback) {
+  const raw = (input || fallback || 'auth.json').replace(/\.json$/i, '');
+  const safe = raw.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'auth';
+  return `${safe}.json`;
+}
+
+async function uniqueAuthPath(fileName) {
+  await fs.mkdir(PROJECT_ACCOUNTS_DIR, { recursive: true });
+  const parsed = path.parse(fileName);
+  let destName = fileName;
+  let dest = path.join(PROJECT_ACCOUNTS_DIR, destName);
+  let counter = 2;
+  while (fsSync.existsSync(dest)) {
+    destName = `${parsed.name}_${counter}${parsed.ext || '.json'}`;
+    dest = path.join(PROJECT_ACCOUNTS_DIR, destName);
+    counter++;
+  }
+  return { destName, dest };
+}
 
 // GET /api/accounts
 router.get('/accounts', asyncHandler(async (_req, res) => {
@@ -44,25 +90,8 @@ router.get('/accounts/scan-dir', asyncHandler(async (req, res) => {
       const content = await fs.readFile(fullPath, 'utf8');
       const parsed = JSON.parse(content);
 
-      const token = parsed.access_token || parsed.accessToken || '';
-      const payload = decodeJwtPayload(token);
-      const email = payload?.email || payload?.['https://api.openai.com/profile']?.email || '';
-
-      let auth_type = 'plus';
-      const accessToken = parsed.tokens?.access_token || parsed.access_token || '';
-      if (accessToken) {
-        try {
-          const whamResp = await fetch('https://chatgpt.com/backend-api/wham/usage', {
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(8000),
-          });
-          if (whamResp.ok) {
-            const whamData = await whamResp.json();
-            const pt = whamData.plan_type || '';
-            auth_type = pt.includes('team') ? 'team' : pt.includes('free') ? 'free' : 'plus';
-          }
-        } catch { }
-      }
+      const email = getAuthEmail(parsed);
+      const auth_type = await detectAuthType(parsed);
 
       const suggestedName = file.replace(/\.json$/, '');
       results.push({
@@ -81,6 +110,85 @@ router.get('/accounts/scan-dir', asyncHandler(async (req, res) => {
   }
 
   res.json({ files: results, dir });
+}));
+
+// POST /api/accounts/import-auth
+router.post('/accounts/import-auth', asyncHandler(async (req, res) => {
+  const files = Array.isArray(req.body?.files) ? req.body.files : [];
+  const platform = req.body?.platform || 'gpt';
+
+  if (files.length === 0) {
+    return res.status(400).json({ message: 'No auth files provided' });
+  }
+  if (files.length > 20) {
+    return res.status(400).json({ message: 'Please import no more than 20 files at once' });
+  }
+
+  const existingRows = db.prepare('SELECT auth_file_path, email FROM accounts').all();
+  const existingPaths = new Set(existingRows.map(r => r.auth_file_path));
+  const existingEmails = new Set(existingRows.map(r => (r.email || '').toLowerCase()).filter(Boolean));
+
+  const added = [];
+  const skipped = [];
+
+  for (const incoming of files) {
+    const originalName = incoming?.name || 'auth.json';
+    const content = typeof incoming?.content === 'string' ? incoming.content.trim() : '';
+
+    if (!content) {
+      skipped.push({ file: originalName, reason: 'Empty file' });
+      continue;
+    }
+    if (Buffer.byteLength(content, 'utf8') > 256 * 1024) {
+      skipped.push({ file: originalName, reason: 'File too large' });
+      continue;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      skipped.push({ file: originalName, reason: 'Invalid JSON' });
+      continue;
+    }
+
+    const email = getAuthEmail(parsed);
+    if (email && existingEmails.has(email.toLowerCase())) {
+      skipped.push({ file: originalName, email, reason: 'Email duplicate' });
+      continue;
+    }
+
+    const auth_type = await detectAuthType(parsed);
+    const fallbackName = email ? email.split('@')[0] : originalName;
+    const { destName, dest } = await uniqueAuthPath(safeAuthFileName(originalName, fallbackName));
+
+    if (existingPaths.has(dest)) {
+      skipped.push({ file: originalName, reason: 'Path duplicate' });
+      continue;
+    }
+
+    await fs.writeFile(dest, `${JSON.stringify(parsed, null, 2)}\n`, { mode: 0o600 });
+
+    const id = crypto.randomUUID();
+    const accountId = incoming?.account_id || destName.replace(/\.json$/i, '');
+    db.prepare(`
+      INSERT INTO accounts (
+        id, account_id, email, auth_type, auth_file_path, platform, status, is_current,
+        last_login_at, total_tasks_completed, success_rate, session_start_at,
+        total_session_seconds, requests_this_minute, tokens_used_percent,
+        last_request_at, uptime_percent, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'idle', FALSE, datetime('now'), 0, 100, datetime('now'), 0, 0, 0, datetime('now'), 100, datetime('now'), datetime('now'))
+    `).run(id, accountId, email, auth_type, dest, platform);
+
+    await createLog({ accountId: id, message: `Account ${accountId} imported from upload` });
+    const row = db.prepare('SELECT * FROM accounts WHERE id = ?').get(id);
+    const account = mapAccount(row);
+    added.push({ file: originalName, saved_as: destName, account });
+    existingPaths.add(dest);
+    if (email) existingEmails.add(email.toLowerCase());
+  }
+
+  res.status(201).json({ added, skipped });
 }));
 
 // POST /api/accounts
