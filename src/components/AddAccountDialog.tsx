@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, RefreshCw, CheckSquare, Square, AlertCircle, LogIn, CheckCircle2, XCircle, Loader2, ChevronLeft } from 'lucide-react';
+import { Plus, Search, RefreshCw, CheckSquare, Square, AlertCircle, LogIn, CheckCircle2, XCircle, Loader2, ChevronLeft, Upload, ClipboardPaste } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Account, AccountType } from '@/types';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -216,7 +217,10 @@ export function AddAccountDialog({ onAccountAdded, platforms = ['gpt', 'gemini',
   const [names, setNames] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [uploadingAuth, setUploadingAuth] = useState(false);
+  const [pasteJson, setPasteJson] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('gpt');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
 
   const handleOpen = () => {
@@ -269,6 +273,47 @@ export function AddAccountDialog({ onAccountAdded, platforms = ['gpt', 'gemini',
     } else {
       setSelected(new Set(addable.map(f => f.file)));
     }
+  };
+
+  const importAuthFiles = async (files: Array<{ name: string; content: string }>) => {
+    if (files.length === 0) return;
+    setUploadingAuth(true);
+    try {
+      const result = await api.importAuthFiles({ platform: selectedPlatform, files });
+      if (result.added.length > 0) {
+        toast.success(`成功导入 ${result.added.length} 个账号`);
+        onAccountAdded(result.added[result.added.length - 1].account);
+        await handleScan();
+      }
+      if (result.skipped.length > 0) {
+        toast.warning(`跳过 ${result.skipped.length} 个文件：${result.skipped.map(item => `${item.file}(${item.reason})`).join('，')}`);
+      }
+      if (result.added.length === 0 && result.skipped.length === 0) {
+        toast.info('没有可导入的 auth 文件');
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploadingAuth(false);
+    }
+  };
+
+  const handleFileUpload = async (fileList: FileList | null) => {
+    const files = Array.from(fileList || []).filter(file => file.name.toLowerCase().endsWith('.json'));
+    if (files.length === 0) {
+      toast.error('请选择 .json auth 文件');
+      return;
+    }
+    const payload = await Promise.all(files.map(async file => ({ name: file.name, content: await file.text() })));
+    await importAuthFiles(payload);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handlePasteImport = async () => {
+    const content = pasteJson.trim();
+    if (!content) return;
+    await importAuthFiles([{ name: 'pasted-auth.json', content }]);
+    setPasteJson('');
   };
 
   const handleAdd = async () => {
@@ -351,9 +396,57 @@ export function AddAccountDialog({ onAccountAdded, platforms = ['gpt', 'gemini',
                 <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">→</span>
               </button>
 
+              <div className="rounded-lg border border-border/50 bg-card/50 p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">上传 auth.json</p>
+                    <p className="text-[11px] text-muted-foreground">直接从本地选择文件，自动保存并添加账号</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    disabled={uploadingAuth}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploadingAuth ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {uploadingAuth ? '导入中' : '选择文件'}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    multiple
+                    className="hidden"
+                    onChange={e => handleFileUpload(e.target.files)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Textarea
+                    value={pasteJson}
+                    onChange={e => setPasteJson(e.target.value)}
+                    placeholder="也可以把 auth.json 内容粘贴到这里"
+                    className="min-h-[74px] text-xs font-mono resize-none"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={uploadingAuth || !pasteJson.trim()}
+                      onClick={handlePasteImport}
+                    >
+                      <ClipboardPaste className="h-3.5 w-3.5" />
+                      粘贴导入
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div className="relative flex items-center gap-3">
                 <div className="flex-1 border-t border-border/40" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">或手动导入</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">或扫描服务器目录</span>
                 <div className="flex-1 border-t border-border/40" />
               </div>
 

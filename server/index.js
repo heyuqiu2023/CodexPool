@@ -29,7 +29,7 @@ import usageHistoryRoutes from './routes/usage-history.js';
 const app = express();
 
 app.use(cors({ origin: config.frontendOrigin }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 // Serve frontend static files in production
 const __filename = fileURLToPath(import.meta.url);

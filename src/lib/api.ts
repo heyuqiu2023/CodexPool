@@ -127,6 +127,10 @@ export const api = {
     dir: string;
     error?: string;
   }>(`/api/accounts/scan-dir${dir ? `?dir=${encodeURIComponent(dir)}` : ''}`),
+  importAuthFiles: (payload: { platform?: string; files: Array<{ name: string; content: string; account_id?: string }> }) => request<{
+    added: Array<{ file: string; saved_as: string; account: Account }>;
+    skipped: Array<{ file: string; email?: string; reason: string }>;
+  }>('/api/accounts/import-auth', { method: 'POST', body: JSON.stringify(payload) }),
   refreshAllTokens: () => request<{ ok: boolean; total: number; success: number; results: Array<{ id: string; account_id: string; ok: boolean; reason?: string; newExpiresAt?: string }> }>('/api/actions/refresh-all-tokens', { method: 'POST' }),
   startCodexLogin: () => request<{ ok: boolean }>('/api/auth/codex-login', { method: 'POST' }),
   getCodexLoginStatus: () => request<{
